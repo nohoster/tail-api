@@ -13,8 +13,8 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - linux/amd64
-          - linux/arm64
+          - {arch: linux/amd64, name: amd64} 
+          - {arch: linux/arm64, name: arm64}
     steps:
       -
         name: Checkout
@@ -47,7 +47,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: ${{ matrix.platform }}
+          platforms: ${{ matrix.platform.arch }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
           file: Dockerfile
@@ -61,7 +61,7 @@ jobs:
         name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ matrix.platform }}
+          name: digests-${{ matrix.platform.name }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
