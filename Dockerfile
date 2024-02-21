@@ -8,7 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 RUN python-on-whales download-cli
 
-COPY modules ./
+COPY modules ./modules
 
 EXPOSE 8000
 
