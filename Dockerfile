@@ -8,6 +8,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 RUN python-on-whales download-cli
 
+COPY modules ./
+
 EXPOSE 8000
 
 CMD uvicorn main:app --host 0.0.0.0
