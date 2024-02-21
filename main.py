@@ -1,18 +1,9 @@
 from typing import Union
-from fastapi import FastAPI, HTTPException 
+from fastapi import FastAPI
 from python_on_whales import docker
 import json
-
-def error_check(command_output: str):
-    if "User not found" in command_output:
-        raise HTTPException(status_code=400, detail="User not found")
-    if "record not found" in command_output:
-            raise HTTPException(status_code=400, detail="Identifier not found")
-
-def id_check(id:int):
-    if id <= 0:
-        raise HTTPException(status_code=400, detail="Identifier invalid or not set")
-
+from modules import nodes, common
+from modules.nodes import Node
 
 app = FastAPI()
 
@@ -25,56 +16,27 @@ def preauthkey_list(
     headscale = ["headscale", "-o", "json", "preauthkeys", "list"]
 
     command_output = str(docker.execute(container="headscale-headscale-1", command=headscale + ["-u", user]))
-    error_check(command_output)
+    common.error_check(command_output)
 
     keys = json.loads(command_output)
     if tags:
         for key_dict in keys:
-            if "acl_tags" in key_dict and tags in key_dict["acl_tags"] :
+           if "acl_tags" in key_dict and tags in key_dict["acl_tags"] :
                 return key_dict
     else:
         return keys
 
-@app.get("/api/v1/headscale/nodes/{command}")
-def nodes_commands(
-        command: str,
-        user: str = "",
-        id: int = 0,
-        tags: str = "",
-        name: str = ""
-        ):
-    
-    headscale = ["headscale", "-o", "json", "nodes"]
+## Node management methods
 
-    if command in ["list", "ls"] :
-        ## JSON output always displays tags so -t flag is unnecessary
-        command_output = str(docker.execute(container="headscale-headscale-1", command=headscale + [command, "-u", user]))
-        error_check(command_output)
-        return json.loads(command_output)
-    
-    elif command in ["delete", "del", "expire", "logout"]:
-        id_check(id)
-        command_output = str(docker.execute(container="headscale-headscale-1", command=headscale + [command, "-i", str(id)]))
-        error_check(command_output)
-        return json.loads(command_output)
+@app.get("/api/v1/headscale/nodes/")
+def nodes_get_wrapper(user: str = ""):
+    return nodes.nodes_get(user)
 
-    elif command in ["move", "mv"]:
-        id_check(id)
-        command_output = str(docker.execute(container="headscale-headscale-1", command=headscale + [command, "-i", str(id), "-u", user]))
-        error_check(command_output)
-        return json.loads(command_output)
+@app.delete("/api/v1/headscale/nodes/")
+def nodes_delete_wrapper(id: int, expire: bool = False):
+    return nodes.nodes_delete(id, expire)
 
-    elif command in ["tag", "tags"]:
-        id_check(id)
-        command_output = str(docker.execute(container="headscale-headscale-1", command=headscale + [command, "-i", str(id), "-t", tags]))
-        error_check(command_output)
-        return json.loads(command_output)
+@app.post("/api/v1/headscale/nodes/")
+def nodes_post_wrapper(node: Node):
+    return nodes.nodes_post(node)
 
-    elif command == "rename":
-        id_check(id)
-        command_output = str(docker.execute(container="headscale-headscale-1", command=headscale + [command, "-i", str(id), name]))
-        error_check(command_output)
-        return json.loads(command_output)
-       
-    else:
-        raise HTTPException(status_code=400, detail="Unkonwn command")
