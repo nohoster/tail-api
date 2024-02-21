@@ -9,6 +9,11 @@ def error_check(command_output: str):
     if "record not found" in command_output:
             raise HTTPException(status_code=400, detail="Identifier not found")
 
+def id_check(id:int):
+    if id <= 0:
+        raise HTTPException(status_code=400, detail="Identifier invalid or not set")
+
+
 app = FastAPI()
 
 @app.get("/api/v1/headscale/preauthkeys/list")
@@ -41,36 +46,32 @@ def nodes_commands(
     
     headscale = ["headscale", "-o", "json", "nodes"]
 
-    if command == "list" or command == "ls" :
+    if command in ["list", "ls"] :
         ## JSON output always displays tags so -t flag is unnecessary
         command_output = str(docker.execute(container="headscale-headscale-1", command=headscale + [command, "-u", user]))
         error_check(command_output)
         return json.loads(command_output)
     
-    elif command == "delete" or command == "del" or command == "expire" or command == "logout":
-        if id <= 0:
-            raise HTTPException(status_code=400, detail="Identifier invalid or not set")
+    elif command in ["delete", "del", "expire", "logout"]:
+        id_check(id)
         command_output = str(docker.execute(container="headscale-headscale-1", command=headscale + [command, "-i", str(id)]))
         error_check(command_output)
         return json.loads(command_output)
 
-    elif command == "move" or command == "mv":
-        if id <= 0:
-            raise HTTPException(status_code=400, detail="Identifier invalid or not set")
+    elif command in ["move", "mv"]:
+        id_check(id)
         command_output = str(docker.execute(container="headscale-headscale-1", command=headscale + [command, "-i", str(id), "-u", user]))
         error_check(command_output)
         return json.loads(command_output)
 
-    elif command == "tag" or command == "tags":
-        if id <= 0:
-            raise HTTPException(status_code=400, detail="Identifier invalid or not set")
+    elif command in ["tag", "tags"]:
+        id_check(id)
         command_output = str(docker.execute(container="headscale-headscale-1", command=headscale + [command, "-i", str(id), "-t", tags]))
         error_check(command_output)
         return json.loads(command_output)
 
     elif command == "rename":
-        if id <= 0:
-            raise HTTPException(status_code=400, detail="Identifier invalid or not set")
+        id_check(id)
         command_output = str(docker.execute(container="headscale-headscale-1", command=headscale + [command, "-i", str(id), name]))
         error_check(command_output)
         return json.loads(command_output)
